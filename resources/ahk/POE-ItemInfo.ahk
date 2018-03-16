@@ -7364,6 +7364,33 @@ ParseCharges(stats)
 ParseBeastData(data) {
 	a := {}
 	
+	legendaryBeastsList := ["Farric Wolf Alpha", "Fenumal Scorpion", "Fenumal Plaqued Arachnid", "Farric Frost Hellion Alpha", "Farric Lynx ALpha", "Saqawine Vulture", "Craicic Chimeral", "Saqawine Cobra", "Craicic Maw", "Farric Ape", "Farric Magma Hound", "Craicic Vassal", "Farric Pit Hound", "Craicic Squid" 
+	, "Farric Taurus", "Fenumal Scrabbler", "Farric Goliath", "Fenumal Queen", "Saqawine Blood Viper", "Fenumal Devourer", "Farric Ursa", "Fenumal Widow", "Farric Gargantuan", "Farric Chieftain", "Farric Ape", "Farrci Flame Hellion Alpha", "Farrci Goatman", "Craicic Watcher", "Saqawine Retch"
+	, "Saqawine Chimeral", "Craicic Shield Crab", "Craicic Sand Spitter", "Craicic Savage Crab", "Saqawine Rhoa"]
+	
+	portalBeastsList := ["Farric Tiger Alpha", "Craicic Spider Crab", "Fenumal Hybrid Arachnid", "Saqawine Rhex"]
+	aspectBeastsList := ["Farrul, First of the Plains", "Craiceann, First of the Deep", "Fenumus, First of the Night", "Saqawal, First of the Sky"]
+	
+	nameplate := data.nameplate
+	Loop, Parse, nameplate, `n, `r
+	{
+		If (A_Index = 2 and IsInArray(Trim(A_LoopField), aspectBeastsList)) {
+			a.IsAspectBeast := true
+			a.BeastName := Trim(A_LoopField)
+		}	
+		
+		If (A_Index = 3) {
+			a.BeastBase := Trim(A_LoopField)
+			If (IsInArray(Trim(A_LoopField), portalBeastsList)) {
+				a.IsPortalbeast := true
+			}
+			Else If (IsInArray(Trim(A_LoopField), legendaryBeastsList)) {
+				a.IsLegendaryBeast := true
+			}
+			
+		}		
+	}
+	
 	parts := data.parts[2]
 	Loop, Parse, parts, `n, `r
 	{
@@ -7380,7 +7407,7 @@ ParseBeastData(data) {
 			a["Mods"].Push(match1)
 		}
 	}
-	
+
 	return a
 }
 
@@ -11330,6 +11357,18 @@ ZeroTrim(number) {
 		number := (StrLen(trail) > 0) ? match1 "." trail : match1
 		Return number
 	}
+}
+
+IsInArray(el, array) {
+	For i, element in array {
+		If (el = "") {
+			Return false
+		}
+		If (element = el) {
+			Return true
+		}
+	}
+	Return false
 }
 
 TogglePOEItemScript()

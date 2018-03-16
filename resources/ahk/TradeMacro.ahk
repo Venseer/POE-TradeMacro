@@ -680,27 +680,71 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 			modParam.mod_name := TradeFunc_FindInModGroup(TradeGlobals.Get("ModsData")["bestiary"], Item.BeastData.GenusMod)
 			modParam.mod_min  := ""
 			RequestParams.modGroups[1].AddMod(modParam)	
-		}		
+		}
+		
+		; legendary beasts:
+		; Farric Wolf Alpha, Fenumal Scorpion, Fenumal Plaqued Arachnid, Farric Frost Hellion Alpha,  Farric Lynx ALpha, Saqawine Vulture,
+		; Craicic Chimeral, Saqawine Cobra, Craicic Maw, Farric Ape, Farric Magma Hound, Craicic Vassal, Farric Pit Hound, Craicic Squid,  
+		; Farric Taurus, Fenumal Scrabbler, Farric Goliath, Fenumal Queen, Saqawine Blood Viper, Fenumal Devourer, Farric Ursa, Fenumal Widow, 
+		; Farric Gargantuan, Farric Chieftain, Farric Ape, Farrci Flame Hellion Alpha, Farrci Goatman, Craicic Watcher, Saqawine Retch, 
+		; Saqawine Chimeral, Craicic Shield Crab, Craicic Sand Spitter, Craicic Savage Crab, Saqawine Rhoa
+		
+		; portal beasts:
+		; Farric Tiger Alpha, Craicic Spider Crab, Fenumal Hybrid Arachnid, Saqawine Rhex
+		
+		; aspect beasts:
+		; "Farrul, First of the Plains", "Craiceann, First of the Deep", "Fenumus, First of the Night", "Saqawal, First of the Sky"
+		/*
+			add beast name and base/subtype
+			*/
+		skipBeastMods := false
+		If (Item.BeastData.IsLegendaryBeast or Item.BeastData.IsPortalBeast) {
+			RequestParams.Name := Item.BeastData.BeastBase
+			Item.UsedInSearch.BeastBase := true
+			skipBeastMods := true			
+		}	
+		If (Item.BeastData.IsAspectBeast) {
+			RequestParams.Name := Item.BeastData.BeastName
+			Item.UsedInSearch.FullName := true
+			skipBeastMods := true
+		}
 		
 		/* 
 			add beastiary mods
 			*/
-		If (not isAdvancedPriceCheckRedirect) {			
-			If (not isAdvancedPriceCheck) {
+		If (not isAdvancedPriceCheckRedirect and not skipBeastMods) {			
+			If (not isAdvancedPriceCheck) {		
+				
+				useOnlyThisBeastMod := ""
+				For key, imod in preparedItem.mods {
+					; http://poecraft.com/bestiary
+					; craicis presence is valuable, requires ilvl 70+
+					If (RegExMatch(imod.param, "i)(Craicic Presence)", match) and Item.Level >= 70) {
+						useOnlyThisBeastMod := match1
+					}					
+					
+					; crimson flock, putrid flight, unstable swarm 80+
+					If (RegExMatch(imod.param, "i)(Crimson Flock|Putrid Flight|Unstable Swarm)", match) and Item.Level >= 80) {
+						useOnlyThisBeastMod := match1
+					}
+				}				
+				
 				For key, imod in preparedItem.mods {
 					If (imod.param) {	; exists on poe.trade
-						modParam := new _ParamMod()
-						modParam.mod_name := imod.param
-						modParam.mod_min  := ""
-						RequestParams.modGroups[1].AddMod(modParam)	
+						If ((StrLen(useOnlyThisBeastMod) and RegExMatch(imod.param, "i)" useOnlyThisBeastMod "")) or (not StrLen(useOnlyThisBeastMod))) {								
+							modParam := new _ParamMod()
+							modParam.mod_name := imod.param
+							modParam.mod_min  := ""
+							RequestParams.modGroups[1].AddMod(modParam)
+							
+							If (StrLen(useOnlyThisBeastMod)) {
+								RequestParams.ilvl_min := 70
+							}
+						}
 					}				
 				}
 			}			
 		}
-		
-		; ilevel?
-		; group ?
-		; family ?
 	}
 	
 	; league stones
@@ -2123,6 +2167,7 @@ TradeFunc_ParseHtml(html, payload, iLvl = "", ench = "", isItemAgeRequest = fals
 			}
 
 			Title .= (Item.UsedInSearch.FullName and ShowFullNameNote) ? "| Full Name " : ""
+			Title .= (Item.UsedInSearch.BeastBase and ShowFullNameNote) ? "| Beast Base " : ""
 			Title .= (Item.UsedInSearch.Rarity) ? "(" Item.UsedInSearch.Rarity ") " : ""
 			Title .= (Item.UsedInSearch.Corruption and not Item.IsMapFragment and not Item.IsDivinationCard and not Item.IsCurrency)   ? "| Corrupted (" . Item.UsedInSearch.Corruption . ") " : ""
 			Title .= (Item.UsedInSearch.ItemXP) ?  "| XP (>= 70%) " : ""
