@@ -605,7 +605,7 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 		If (isCraftingBase and not Enchantment.param and not Corruption.param and not isAdvancedPriceCheckRedirect) {
 			RequestParams.xbase := Item.BaseName
 			Item.UsedInSearch.ItemBase := Item.BaseName
-			; If highest item level needed for crafting
+			; if highest item level needed for crafting
 			If (hasHighestCraftingILvl) {
 				RequestParams.ilvl_min := hasHighestCraftingILvl
 				Item.UsedInSearch.iLvl.min := hasHighestCraftingILvl
@@ -840,17 +840,21 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 		Item.UsedInSearch.Corruption := "No"
 	}
 
-	If (Item.IsMap) {
+	If (Item.IsMap) {		
 		; add Item.subtype to make sure to only find maps
 		RegExMatch(Item.Name, "i)The Beachhead.*", isHarbingerMap)
 		RegExMatch(Item.SubType, "i)Unknown Map", isUnknownMap)
+		isElderMap := RegExMatch(Item.Name, ".*?Elder .*") and Item.MapTier = 16
 		
 		mapTypes := TradeGlobals.Get("ItemTypeList")["Map"]
 		typeFound := TradeUtils.IsInArray(Item.SubType, mapTypes)
 		
 		If (not isHarbingerMap and not isUnknownMap and typeFound) {
 			RequestParams.xbase := Item.SubType
-			RequestParams.xtype := ""
+			RequestParams.xtype := ""		
+			If (isElderMap) {
+				RequestParams.name := "Elder"
+			}
 		} Else {
 			RequestParams.xbase := ""
 			RequestParams.xtype := "Map"
@@ -864,7 +868,7 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 				RequestParams.name := Item.Name
 				RequestParams.level_min := Item.MapTier
 				RequestParams.level_max := Item.MapTier
-			} Else {
+			} Else If (not isElderMap) {
 				RequestParams.name := ""
 			}
 		}
