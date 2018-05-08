@@ -605,7 +605,7 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 		If (isCraftingBase and not Enchantment.param and not Corruption.param and not isAdvancedPriceCheckRedirect) {
 			RequestParams.xbase := Item.BaseName
 			Item.UsedInSearch.ItemBase := Item.BaseName
-			; If highest item level needed for crafting
+			; if highest item level needed for crafting
 			If (hasHighestCraftingILvl) {
 				RequestParams.ilvl_min := hasHighestCraftingILvl
 				Item.UsedInSearch.iLvl.min := hasHighestCraftingILvl
@@ -840,17 +840,21 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 		Item.UsedInSearch.Corruption := "No"
 	}
 
-	If (Item.IsMap) {
+	If (Item.IsMap) {		
 		; add Item.subtype to make sure to only find maps
 		RegExMatch(Item.Name, "i)The Beachhead.*", isHarbingerMap)
 		RegExMatch(Item.SubType, "i)Unknown Map", isUnknownMap)
+		isElderMap := RegExMatch(Item.Name, ".*?Elder .*") and Item.MapTier = 16
 		
 		mapTypes := TradeGlobals.Get("ItemTypeList")["Map"]
 		typeFound := TradeUtils.IsInArray(Item.SubType, mapTypes)
 		
 		If (not isHarbingerMap and not isUnknownMap and typeFound) {
 			RequestParams.xbase := Item.SubType
-			RequestParams.xtype := ""
+			RequestParams.xtype := ""		
+			If (isElderMap) {
+				RequestParams.name := "Elder"
+			}
 		} Else {
 			RequestParams.xbase := ""
 			RequestParams.xtype := "Map"
@@ -864,7 +868,7 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 				RequestParams.name := Item.Name
 				RequestParams.level_min := Item.MapTier
 				RequestParams.level_max := Item.MapTier
-			} Else {
+			} Else If (not isElderMap) {
 				RequestParams.name := ""
 			}
 		}
@@ -1974,7 +1978,7 @@ TradeFunc_GetMeanMedianPrice(html, payload, ByRef errorMsg = ""){
 	Title := ""
 	error := 0
 
-	; loop over the first 99 results If possible, otherwise over as many as are available
+	; loop over the first 99 results if possible, otherwise over as many as are available
 	accounts := []
 	NoOfItemsToCount := 99
 	NoOfItemsSkipped := 0
@@ -1982,7 +1986,7 @@ TradeFunc_GetMeanMedianPrice(html, payload, ByRef errorMsg = ""){
 		ItemBlock 	:= TradeUtils.HtmlParseItemData(html, "<tbody id=""item-container-" A_Index - 1 """(.*?)<\/tbody>", html)
 		AccountName 	:= TradeUtils.HtmlParseItemData(ItemBlock, "data-seller=""(.*?)""")
 		AccountName	:= RegexReplace(AccountName, "i)^\+", "")
-		ChaosValue 	:= TradeUtils.HtmlParseItemData(ItemBlock, "data-name=""price_in_chaos""(.*?)>")
+		;ChaosValue 	:= TradeUtils.HtmlParseItemData(ItemBlock, "data-name=""price_in_chaos_new""(.*?)>")
 		Currency	 	:= TradeUtils.HtmlParseItemData(ItemBlock, "has-tip.*currency-(.*?)""", rest)
 		CurrencyV	 	:= TradeUtils.HtmlParseItemData(rest, ">(.*?)<", rest)
 		RegExMatch(CurrencyV, "i)\d+(\.|,?\d+)?", match)
@@ -1999,7 +2003,7 @@ TradeFunc_GetMeanMedianPrice(html, payload, ByRef errorMsg = ""){
 			}
 		}
 
-		If (StrLen(ChaosValue) <= 0) {
+		If (StrLen(CurrencyV) <= 0) {
 			Continue
 		}  Else {
 			itemCount++
@@ -3922,26 +3926,12 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		offset := (m > 1 ) ? "+10" : "15"
 		m++
 		text := "Links (max): 4"
-		/*
-		If (Links = 4) {
-			Gui, SelectModsGui:Add, CheckBox, x%offset% yp+0 vTradeAdvancedUseLinksMaxFour Checked, % text
-		} Else {
-			Gui, SelectModsGui:Add, CheckBox, x%offset% yp+0 vTradeAdvancedUseLinksMaxFour, % text
-		}
-		*/
 		Gui, SelectModsGui:Add, CheckBox, x%offset% yp+0 vTradeAdvancedUseLinksMaxFour, % text
 	}
 	Else If (Links <= 3 and advItem.maxSockets = 3) {
 		offset := (m > 1 ) ? "+10" : "15"
 		m++
 		text := "Links (max): 3"
-		/*
-		If (Links = 3) {
-			Gui, SelectModsGui:Add, CheckBox, x%offset% yp+0 vTradeAdvancedUseLinksMaxThree Checked, % text
-		} Else {
-			Gui, SelectModsGui:Add, CheckBox, x%offset% yp+0 vTradeAdvancedUseLinksMaxThree, % text
-		}
-		*/
 		Gui, SelectModsGui:Add, CheckBox, x%offset% yp+0 vTradeAdvancedUseLinksMaxThree, % text
 	}
 
@@ -3950,10 +3940,15 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 	offsetY := (m = 1) ? "20" : "+0"
 	iLvlCheckState := ""
 	iLvlValue		:= ""
-	If (TradeOpts.AdvancedSearchCheckILVL) {
+	If (advItem.specialBase or advItem.IsBeast) {
 		iLvlCheckState := TradeOpts.AdvancedSearchCheckILVL ? "Checked" : ""
-		iLvlValue		:= TradeOpts.AdvancedSearchCheckILVL ? advItem.iLvl : ""
-	} Else {
+		iLvlValue := advItem.iLvl ; use itemlevel to fill the box in any case (elder/shaper)
+	}
+	Else If (TradeOpts.AdvancedSearchCheckILVL) {
+		iLvlCheckState := "Checked"
+		iLvlValue		:= advItem.iLvl
+	}
+	Else {
 		If (advItem.maxSockets > 1) {
 			If (advItem.iLvl >= 50 and advItem.maxSockets > 5) {
 				iLvlValue := 50
@@ -3965,6 +3960,9 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 				iLvlValue := 2
 			}
 			iLvlCheckState := "Checked"
+		}
+		Else {
+			iLvlValue := advItem.iLvl
 		}
 	}
 	Gui, SelectModsGui:Add, CheckBox, x%offsetX% yp%offsetY% vTradeAdvancedSelectedILvl %iLvlCheckState%, % "iLvl (min)"
