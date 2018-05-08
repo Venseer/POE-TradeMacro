@@ -10563,6 +10563,125 @@ AdvancedItemInfoExt() {
 	}
 }
 
+OpenItemOnPoEAntiquary() {
+	IfWinActive, ahk_group PoEWindowGrp
+	{
+		Global Item, Opts, Globals, ItemData
+
+		ClipBoardTemp := Clipboard
+		SuspendPOEItemScript = 1 ; This allows us to handle the clipboard change event
+
+		Clipboard :=
+		Send ^{sc02E}	; ^{c}
+		Sleep 100
+
+		CBContents := GetClipboardContents()
+		CBContents := PreProcessContents(CBContents)
+		Globals.Set("ItemText", CBContents)
+		ParsedData := ParseItemData(CBContents)
+
+		If (Item.Name) {
+			global AntiquaryType := AntiquaryGetType(Item)
+			name := Item.Name
+			
+			If (AntiquaryType) {
+				url := "http://poe-antiquary.xyz/api/id/" UriEncode(AntiquaryType) "/" UriEncode(Item.Name)
+				;http://poe-antiquary.xyz/api/id/Accessory/Impresence
+				Try {
+					global AntiquaryItemChoice					
+					
+					postData 	:= ""					
+					options	:= "RequestType: GET"
+					options	.= "`n" "TimeOut: 15"
+					reqHeaders := []
+					
+					reqHeaders.push("Connection: keep-alive")
+					reqHeaders.push("Cache-Control: max-age=0")
+					reqHeaders.push("Upgrade-Insecure-Requests: 1")
+					reqHeaders.push("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+					
+					data := PoEScripts_Download(url, postData, reqHeaders, "", true)
+					global AntiquaryData := JSON.Load(data)
+					length := AntiquaryData.Length()
+					
+					If (length == 1) {
+						data := AntiquaryData[1]
+						id := data["id"]
+						name := data["name"]
+						lastLeague := data["league"]
+						AntiquaryOpenInBrowser(AntiquaryType, name, id, lastLeague)
+					}
+					If (length > 1) {
+						;AntiquaryCreateGUI()
+					}
+				} Catch error {
+					errorMsg := error.Message
+					Msgbox, %errorMsg%
+				}
+			}
+		}
+		SuspendPOEItemScript = 0
+	}
+}
+
+AntiquaryOpenInBrowser(type, name, id, lastLeague) {
+	league := TradeGlobals.Get("LeagueName")
+	If (RegExMatch(league, "Hardcore.*")) {
+		league := lastLeague "HC"
+	} Else {
+		league := lastLeague
+	}
+	
+	league	:= UriEncode(league)
+	type		:= UriEncode(type)
+	name		:= UriEncode(name)
+	id		:= UriEncode(id)
+	utm		:= UriEncode("trade macro")
+	
+	url := "http://poe-antiquary.xyz/" league "/" type "/" name "/" id "?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm
+	openWith := AssociatedProgram("html")
+	OpenWebPageWith(openWith, url)
+}
+
+AntiquaryGetType(Item) {
+	If (Item.IsUnique) {
+		If (Item.IsWeapon) {
+			return "Weapon"
+		}
+		If (Item.IsArmour) {
+			return "Armour"
+		}
+		If (Item.isFlask) {
+			return "Flask"
+		}
+		If (Item.isJewel) {
+			return "Jewel"
+		}
+		If (Item.isBelt or Item.isRing or Item.isAmulet) {
+			return "Accessory"
+		}
+	}
+	If (Item.IsEssence) {
+		return "Essence"
+	}
+	If (Item.IsDivinationCard) {
+		return "Divination"
+	}
+	If (Item.IsProphecy) {
+		return "Prophecy"
+	}
+	If (Item.IsMapFragment) {
+		return "Fragment"
+	}
+	If (RegExMatch(Item.Name, "(Sacrifice|Mortal|Fragment).*|Offering to the Goddess|Divine Vesse|.*(Breachstone|s Key)")) {
+		return "Fragment"
+	}
+	If (Item.IsCurrency) {
+		return "Currency"
+	}
+}
+
+
 StringToBase64UriEncoded(stringIn, noUriEncode = false) {
 	stringBase64 := ""
 	FileDelete, %A_ScriptDir%\temp\itemText.txt
