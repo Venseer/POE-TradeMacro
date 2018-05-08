@@ -10580,45 +10580,49 @@ OpenItemOnPoEAntiquary() {
 		Globals.Set("ItemText", CBContents)
 		ParsedData := ParseItemData(CBContents)
 
-		If (Item.Name) {
+		If (Item.Name) {			
+			global AntiquaryData := []
 			global AntiquaryType := AntiquaryGetType(Item)
 			name := Item.Name
 			
 			If (AntiquaryType) {
 				url := "http://poe-antiquary.xyz/api/id/" UriEncode(AntiquaryType) "/" UriEncode(Item.Name)
 				;http://poe-antiquary.xyz/api/id/Accessory/Impresence
+				;global AntiquaryItemChoice					
+				
+				postData 	:= ""					
+				options	:= "RequestType: GET"
+				options	.= "`n" "TimeOut: 15"
+				reqHeaders := []
+				
+				reqHeaders.push("Connection: keep-alive")
+				reqHeaders.push("Cache-Control: max-age=0")
+				reqHeaders.push("Upgrade-Insecure-Requests: 1")
+				reqHeaders.push("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+				
+				data := PoEScripts_Download(url, postData, reqHeaders, "", true)				
 				Try {
-					global AntiquaryItemChoice					
-					
-					postData 	:= ""					
-					options	:= "RequestType: GET"
-					options	.= "`n" "TimeOut: 15"
-					reqHeaders := []
-					
-					reqHeaders.push("Connection: keep-alive")
-					reqHeaders.push("Cache-Control: max-age=0")
-					reqHeaders.push("Upgrade-Insecure-Requests: 1")
-					reqHeaders.push("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
-					
-					data := PoEScripts_Download(url, postData, reqHeaders, "", true)
-					global AntiquaryData := JSON.Load(data)
-					length := AntiquaryData.Length()
-					
-					If (length == 1) {
-						data := AntiquaryData[1]
-						id := data["id"]
-						name := data["name"]
-						lastLeague := data["league"]
-						AntiquaryOpenInBrowser(AntiquaryType, name, id, lastLeague)
-					}
-					If (length > 1) {
-						;AntiquaryCreateGUI()
-					}
+					AntiquaryData := JSON.Load(data)
 				} Catch error {
 					errorMsg := error.Message
 					Msgbox, %errorMsg%
+				}				
+				
+				length := AntiquaryData.Length()					
+				If (length == 1) {
+					data := AntiquaryData[1]
+					id := data["id"]
+					name := data["name"]
+					lastLeague := data["league"]
+					AntiquaryOpenInBrowser(AntiquaryType, name, id, lastLeague)
+				}
+				If (length > 1) {
+					;AntiquaryCreateGUI()
 				}
 			}
+		}
+		Else {			
+			ShowToolTip("Item not available on http://poe-antiquary.xyz.")
 		}
 		SuspendPOEItemScript = 0
 	}
