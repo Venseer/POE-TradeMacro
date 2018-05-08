@@ -1464,8 +1464,7 @@ TradeFunc_GetOSInfo() {
 
 ;----------------------- SplashScreens ---------------------------------------
 TradeFunc_StartSplashScreen() {
-	;SplashTextOn, , 20, PoE-TradeMacro, Initializing script...
-	SplashTextOn, , 20, PoE-TradeMacro, Initializing Pokédex...
+	SplashTextOn, , 20, PoE-TradeMacro, Initializing script...
 }
 TradeFunc_StopSplashScreen() {
 	SplashTextOff
