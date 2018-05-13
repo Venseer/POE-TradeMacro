@@ -212,6 +212,103 @@ TradeFunc_OpenWikiHotkey(priceCheckTest = false, itemData = "") {
 	}	
 }
 
+SetCurrencyRatio:
+	IfWinActive, ahk_group PoEWindowGrp
+	{
+		TradeFunc_SetCurrencyRatio()
+	}
+Return
+
+TradeFunc_SetCurrencyRatio() {
+	Global TradeOpts, Item
+
+	SuspendPOEItemScript = 1 ; This allows us to handle the clipboard change event
+
+	TradeFunc_PreventClipboardGarbageAfterInit()
+	Send ^{sc02E}
+	Sleep 250
+	TradeFunc_DoParseClipboard()
+	
+	If (not Item.name or (not Item.IsCurrency or Item.IsEssence or Item.IsDivinationCard)) {
+		ShowToolTip("Item not supported by this function.`nWorks only on currency.")
+		Return
+	}
+	
+	tags := TradeGlobals.Get("CurrencyTags")	
+	;debugprintarray(tags)
+	
+	windowPosY := Round(A_ScreenHeight / 2)
+	windowPosX := Round(A_ScreenWidth / 2)
+	windowTitle := "Set currency ratio"
+	
+	Gui, CurrencyRatio:Destroy
+	Gui, CurrencyRatio:New
+	Gui, CurrencyRatio:Font, s8, Verdana
+	
+	Gui, CurrencyRatio:Add, Text, x10, % "You want to sell your"
+	Gui, CurrencyRatio:Font, cGreen bold
+	itemName := Item.BaseName ? Item.name " " Item.BaseName "." : Item.Name "."
+	Gui, CurrencyRatio:Add, Text, x+5 yp+0, % itemName	
+	Gui, CurrencyRatio:Font, cDefault norm
+	
+	Gui, CurrencyRatio:Add, Text, x10, % "Select what you want to receive for the amount of currency that you want to sell:"	
+	
+	delimitedListString := ""
+	For key, c in tags.currency {
+		If (not RegExMatch(c.Text, "i)blessing of | shard")) {
+			If (Item.Name != "Chaos Orb") {
+				delimiter := RegExMatch(c.Text, "i)Chaos Orb") ? "||" : "|" 
+			} Else {
+				delimiter := RegExMatch(c.Text, "i)Exalted Orb") ? "||" : "|"
+			}
+			
+			If (c.short) {
+				delimitedListString .= c.short delimiter	
+			} Else {
+				delimitedListString .= c.Text delimiter
+			}			
+		}		
+	}
+	For key, c in tags.fragments {		
+		If (RegExMatch(c.Text, "i)Splinter of ")) {
+			If (c.short) {
+				delimitedListString .= c.short "|"
+			} Else {
+				delimitedListString .= c.Text "|"
+			}			
+		}
+	}
+	
+	global SelectCurrencyRatioReceiveCurrency := ""
+	global SelectCurrencyRatioReceiveAmount := ""
+	global SelectCurrencyRatioSellAmount := ""
+	
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x10 y+15 w60, % "Sell:"
+	Gui, CurrencyRatio:Font, cDefault norm
+	Gui, CurrencyRatio:Add, Edit, x+10 yp-3 w100 vSelectCurrencyRatioSellAmount
+	Gui, CurrencyRatio:Add, Text, x+14 yp+3 w276, % Item.name
+	
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x10 w60, % "Receive:"
+	Gui, CurrencyRatio:Font, cDefault norm
+	Gui, CurrencyRatio:Add, Edit, x+10 yp-3 w100 vSelectCurrencyRatioReceiveAmount
+	Gui, CurrencyRatio:Add, DropDownList, x+10 yp+0 w280 vSelectCurrencyRatioReceiveCurrency, % delimitedListString	
+	
+	Gui, CurrencyRatio:Add, Button, x+-116 y+15 w116 gSelectCurrencyRatioSubmit, Copy to clipboard
+	
+	msg := "This UI creates a note that can be used with premium stash tabs to set prices "
+	msg .= "`n" "by right-clicking an item and pasting it into the ""Note"" field."
+	Gui, CurrencyRatio:Add, Text, x10 y+15, % msg
+	
+	Gui, CurrencyRatio:Font, s7 bold
+	Gui, CurrencyRatio:Add, Text, x10 y+10, % "Your trade will be listed on all trade-sites."
+	
+	Gui, CurrencyRatio:Show, center AutoSize, % windowTitle
+
+	SuspendPOEItemScript = 0 ; Allow ItemInfo to handle clipboard change event
+}
+
 CustomInputSearch:
 	IfWinActive, ahk_group PoEWindowGrp
 	{
@@ -4867,6 +4964,33 @@ PredictedPricingSendFeedback:
 	_prices.currency := PredictedPricingCurrency
 	TradeFunc_PredictedPricingSendFeedback(_rating, PredictedPricingComment, PredictedPricingEncodedData, PredictedPricingLeague, _prices)
 Return
+
+SelectCurrencyRatioSubmit:
+	Gui, CurrencyRatio:Submit
+	
+	TradeFunc_SelectCurrencyRatio(SelectCurrencyRatioSellAmount, SelectCurrencyRatioReceiveCurrency, SelectCurrencyRatioReceiveAmount)
+Return
+
+TradeFunc_SelectCurrencyRatio(amountSell, typeReceive, amountReceive) {
+	tags := TradeGlobals.Get("CurrencyTags")	
+	
+	id := ""
+	For key, category in tags {
+		For k, type in category {
+			If (type.text = typeReceive or type.short = typeReceive) {
+				id := type.id
+			}
+		}
+	}
+	
+	note := "~price "
+	note .= amountReceive "/" amountSell " " id
+	
+	Clipboard := note
+	ShowTooltip("Copied """ note """ to the clipboard.")
+	
+	Return
+}
 
 TradeFunc_PredictedPricingSendFeedback(selector, comment, encodedData, league, price) {
 	postData 	:= ""
