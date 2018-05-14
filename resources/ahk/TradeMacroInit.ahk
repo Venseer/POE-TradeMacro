@@ -719,8 +719,8 @@ CreateTradeSettingsUI()
 	GuiAddHotkey(TradeOpts.ChangeLeagueHotkey, "x+1 yp-2 w124 h20", "ChangeLeagueHotkey", "ChangeLeagueHotkeyH")
 	AddToolTip(ChangeLeagueHotkeyH, "Press key/key combination.`nDefault: ctrl + l")
 	
-	GuiAddCheckbox("Set currency ratio:", "x657 yp+32 w165 h20 0x0100", TradeOpts.SetCurrencyRatio, "SetCurrencyRatio", "SetCurrencyRatioH")
-	AddToolTip(SetCurrencyRatioH, "Copies a note for premium tabs to your clipboard`nthat is a valid currency ratio on all trade sites.")
+	GuiAddCheckbox("Get currency ratio note:", "x657 yp+32 w165 h20 0x0100", TradeOpts.SetCurrencyRatio, "SetCurrencyRatio", "SetCurrencyRatioH")
+	AddToolTip(SetCurrencyRatioH, "Copies an item note for premium tabs to your clipboard`nthat creates a valid currency ratio on all trade sites.")
 	GuiAddHotkey(TradeOpts.SetCurrencyRatioHotkey, "x+1 yp-2 w124 h20", "SetCurrencyRatioHotkey", "SetCurrencyRatioHotkeyH")
 	AddToolTip(SetCurrencyRatioHotkeyH, "Press key/key combination.`nDefault: ctrl + r")
 
