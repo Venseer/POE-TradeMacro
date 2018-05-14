@@ -310,21 +310,31 @@ TradeFunc_SetCurrencyRatio() {
 	
 	Gui, CurrencyRatio:Font, bold
 	Gui, CurrencyRatio:Add, Text, x220 y+5 w100, % "- OR USE -"
-	
 	;Gui, CurrencyRatio:Add, Picture, w15 h-1 x10 y+10, %A_ScriptDir%\resources\images\info-blue.png
 	Gui, CurrencyRatio:Font, bold
-	Gui, CurrencyRatio:Add, Text, x15 y+8 w60 +BackgroundTrans hwndCurrencyRatioInfoTT, % "Ratio:"
+	Gui, CurrencyRatio:Add, Text, x15 y+8 w60 +BackgroundTrans hwndCurrencyRatioInfoTT, % "Ratio*:"
 	Gui, CurrencyRatio:Font, norm
 	Gui, CurrencyRatio:Add, Text, x+10 yp+0, % Item.name "  1 :"
 	
 	Gui, CurrencyRatio:Add, Edit, x+8 yp-3 w55 vSelectCurrencyRatioReceiveRatio, 
 	Gui, CurrencyRatio:Add, Text, x+8 yp+3, % "[Receive Currency]"
-	
-	Gui, CurrencyRatio:Add, Button, x+-116 y+15 w116 gSelectCurrencyRatioSubmit, Copy to clipboard
+
+	Gui, CurrencyRatio:Add, Button, x7 y+15 w80 gSelectCurrencyRatioPreview, Preview
+	Gui, CurrencyRatio:Add, Text, x+15 yp+3 w260,
+	Gui, CurrencyRatio:Add, Button, x+15 yp-3 w116 gSelectCurrencyRatioSubmit, Copy to clipboard
 	
 	msg := "This UI creates a note that can be used with premium stash tabs to set prices "
 	msg .= "`n" "by right-clicking an item and pasting it into the ""Note"" field."
 	Gui, CurrencyRatio:Add, Text, x10 y+15, % msg
+	
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x10 y+13, % "*"
+	Gui, CurrencyRatio:Font, norm
+	Gui, CurrencyRatio:Font, s7
+	msg := "Using a ratio ignores any receive amount. The macro may change the sell amount"
+	msg .= "`n" "while trying to calculate a good (integer) receive amount."
+	Gui, CurrencyRatio:Add, Text, x+4 yp-1, % msg
+	Gui, CurrencyRatio:Font, s8
 	
 	Gui, CurrencyRatio:Font, s7 bold
 	Gui, CurrencyRatio:Add, Text, x10 y+10, % "Your trade will be listed on all trade-sites."
@@ -4990,13 +5000,17 @@ PredictedPricingSendFeedback:
 	TradeFunc_PredictedPricingSendFeedback(_rating, PredictedPricingComment, PredictedPricingEncodedData, PredictedPricingLeague, _prices)
 Return
 
+SelectCurrencyRatioPreview:
+	Gui, CurrencyRatio:Submit, NoHide
+	TradeFunc_SelectCurrencyRatio(SelectCurrencyRatioSellCurrency, SelectCurrencyRatioSellAmount, SelectCurrencyRatioReceiveCurrency, SelectCurrencyRatioReceiveAmount, SelectCurrencyRatioReceiveRatio, true)
+Return
+
 SelectCurrencyRatioSubmit:
 	Gui, CurrencyRatio:Submit
-
 	TradeFunc_SelectCurrencyRatio(SelectCurrencyRatioSellCurrency, SelectCurrencyRatioSellAmount, SelectCurrencyRatioReceiveCurrency, SelectCurrencyRatioReceiveAmount, SelectCurrencyRatioReceiveRatio)
 Return
 
-TradeFunc_SelectCurrencyRatio(typeSell, amountSell, typeReceive, amountReceive, ratioReceive) {
+TradeFunc_SelectCurrencyRatio(typeSell, amountSell, typeReceive, amountReceive, ratioReceive, isPreview = false) {
 	tags := TradeGlobals.Get("CurrencyTags")
 	
 	id := ""
@@ -5043,12 +5057,18 @@ TradeFunc_SelectCurrencyRatio(typeSell, amountSell, typeReceive, amountReceive, 
 		} Until receiveValue
 		
 		note .= receiveValue "/" sellValue " " id
-	}	
+	}
 	
-	Clipboard := note
+	If (not isPreview) {		
+		Clipboard := note
+		msg := "Copied note """ note """ to the clipboard"
+		msg := loops > 1 ? msg " after changing the sell amount to better fit the ratio." : msg "."		
+	}
+	Else {
+		msg := "Note preview """ note """ created"
+		msg := loops > 1 ? msg " after changing the sell amount to better fit the ratio." : msg "." 
+	}
 	
-	msg := "Copied note """ note """ to the clipboard"
-	msg := loops > 1 ? msg " after changing the sell amount to better fit the ratio." : msg "." 
 	msg .= "`n`n" "This is equivalent to a ratio of:"
 	msg .= "`n"   "    [" typeSell "]  1 : " ratio1 "  [" typeReceive "]"
 	msg .= "`n"   "    [" typeSell "]  " ratio2 " : 1  [" typeReceive "]"
