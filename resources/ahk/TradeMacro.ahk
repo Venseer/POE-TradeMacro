@@ -212,6 +212,138 @@ TradeFunc_OpenWikiHotkey(priceCheckTest = false, itemData = "") {
 	}	
 }
 
+SetCurrencyRatio:
+	IfWinActive, ahk_group PoEWindowGrp
+	{
+		TradeFunc_SetCurrencyRatio()
+	}
+Return
+
+TradeFunc_SetCurrencyRatio() {
+	Global TradeOpts, Item
+
+	SuspendPOEItemScript = 1 ; This allows us to handle the clipboard change event
+
+	TradeFunc_PreventClipboardGarbageAfterInit()
+	Send ^{sc02E}
+	Sleep 250
+	TradeFunc_DoParseClipboard()
+	
+	If (not Item.name or (not Item.IsCurrency or Item.IsEssence or Item.IsDivinationCard)) {
+		ShowToolTip("Item not supported by this function.`nWorks only on currency.")
+		Return
+	}
+	
+	tags := TradeGlobals.Get("CurrencyTags")	
+	;debugprintarray(tags)
+	
+	windowPosY := Round(A_ScreenHeight / 2)
+	windowPosX := Round(A_ScreenWidth / 2)
+	windowTitle := "Set currency ratio"
+	
+	Gui, CurrencyRatio:Destroy
+	Gui, CurrencyRatio:New, +hwndCurrencyRatioHwnd
+	Gui, CurrencyRatio:Font, s8, Verdana
+	Gui, CurrencyRatio:Color, ffffff
+	
+	Gui, CurrencyRatio:Add, Text, x10, % "You want to sell your"
+	Gui, CurrencyRatio:Font, cGreen bold
+	itemName := Item.BaseName ? Item.name " " Item.BaseName "." : Item.Name "(s)."
+	Gui, CurrencyRatio:Add, Text, x+5 yp+0, % itemName
+	Gui, CurrencyRatio:Font, cDefault norm
+	
+	;Gui, CurrencyRatio:Add, Text, x10, % "Select what you want to receive for the amount of currency that you want to sell."	
+	Gui, CurrencyRatio:Add, Text, x10 y+10, % "Input the "
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x+0 yp+0, % "minimum "
+	Gui, CurrencyRatio:Font, norm
+	Gui, CurrencyRatio:Add, Text, x+0 yp+0, % "amounts that you want to sell and receive"
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x+0 yp+0, % " per single trade"
+	Gui, CurrencyRatio:Font, norm
+	Gui, CurrencyRatio:Add, Text, x10, % "instead of the amounts that you want to sell and receive in total."	
+	
+	delimitedListString := ""
+	For key, c in tags.currency {
+		If (not RegExMatch(c.Text, "i)blessing of | shard")) {
+			If (Item.Name != "Chaos Orb") {
+				delimiter := RegExMatch(c.Text, "i)Chaos Orb") ? "||" : "|" 
+			} Else {
+				delimiter := RegExMatch(c.Text, "i)Exalted Orb") ? "||" : "|"
+			}
+			
+			If (c.short) {
+				delimitedListString .= c.short delimiter	
+			} Else {
+				delimitedListString .= c.Text delimiter
+			}			
+		}		
+	}
+	For key, c in tags.fragments {		
+		If (RegExMatch(c.Text, "i)Splinter of ")) {
+			If (c.short) {
+				delimitedListString .= c.short "|"
+			} Else {
+				delimitedListString .= c.Text "|"
+			}			
+		}
+	}
+	
+	global SelectCurrencyRatioReceiveCurrency := ""
+	global SelectCurrencyRatioReceiveAmount := ""
+	global SelectCurrencyRatioSellCurrency := Item.name
+	global SelectCurrencyRatioSellAmount := ""
+	global SelectCurrencyRatioReceiveRatio := ""
+	
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x15 y+15 w60, % "Sell:"
+	Gui, CurrencyRatio:Font, cDefault norm
+	Gui, CurrencyRatio:Add, Edit, x+10 yp-3 w55 vSelectCurrencyRatioSellAmount
+	Gui, CurrencyRatio:Add, Text, x+14 yp+3 w276, % Item.name
+	
+	Gui, CurrencyRatio:Add, GroupBox, x7 y+10 w485 h83,
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x15 yp+15 w60, % "Receive:"
+	Gui, CurrencyRatio:Font, cDefault norm
+	Gui, CurrencyRatio:Add, Edit, x+10 yp-3 w55 vSelectCurrencyRatioReceiveAmount
+	Gui, CurrencyRatio:Add, DropDownList, x+10 yp+0 w280 vSelectCurrencyRatioReceiveCurrency, % delimitedListString
+	
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x220 y+5 w100, % "- OR USE -"
+	;Gui, CurrencyRatio:Add, Picture, w15 h-1 x10 y+10, %A_ScriptDir%\resources\images\info-blue.png
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x15 y+8 w60 +BackgroundTrans hwndCurrencyRatioInfoTT, % "Ratio*:"
+	Gui, CurrencyRatio:Font, norm
+	Gui, CurrencyRatio:Add, Text, x+10 yp+0, % Item.name "  1 :"
+	
+	Gui, CurrencyRatio:Add, Edit, x+8 yp-3 w55 vSelectCurrencyRatioReceiveRatio, 
+	Gui, CurrencyRatio:Add, Text, x+8 yp+3, % "[Receive Currency]"
+
+	Gui, CurrencyRatio:Add, Button, x7 y+15 w80 gSelectCurrencyRatioPreview, Preview
+	Gui, CurrencyRatio:Add, Text, x+15 yp+3 w260,
+	Gui, CurrencyRatio:Add, Button, x+15 yp-3 w116 gSelectCurrencyRatioSubmit, Copy to clipboard
+	
+	msg := "This UI creates a note that can be used with premium stash tabs to set prices "
+	msg .= "`n" "by right-clicking an item and pasting it into the ""Note"" field."
+	Gui, CurrencyRatio:Add, Text, x10 y+15, % msg
+	
+	Gui, CurrencyRatio:Font, bold
+	Gui, CurrencyRatio:Add, Text, x10 y+13, % "*"
+	Gui, CurrencyRatio:Font, norm
+	Gui, CurrencyRatio:Font, s7
+	msg := "Using a ratio ignores any receive amount. The macro may change the sell amount"
+	msg .= "`n" "while trying to calculate a good (integer) receive amount."
+	Gui, CurrencyRatio:Add, Text, x+4 yp-1, % msg
+	Gui, CurrencyRatio:Font, s8
+	
+	Gui, CurrencyRatio:Font, s7 bold
+	Gui, CurrencyRatio:Add, Text, x10 y+10, % "Your trade will be listed on all trade-sites."
+	
+	Gui, CurrencyRatio:Show, center AutoSize, % windowTitle
+
+	SuspendPOEItemScript = 0 ; Allow ItemInfo to handle clipboard change event
+}
+
 CustomInputSearch:
 	IfWinActive, ahk_group PoEWindowGrp
 	{
@@ -4867,6 +4999,83 @@ PredictedPricingSendFeedback:
 	_prices.currency := PredictedPricingCurrency
 	TradeFunc_PredictedPricingSendFeedback(_rating, PredictedPricingComment, PredictedPricingEncodedData, PredictedPricingLeague, _prices)
 Return
+
+SelectCurrencyRatioPreview:
+	Gui, CurrencyRatio:Submit, NoHide
+	TradeFunc_SelectCurrencyRatio(SelectCurrencyRatioSellCurrency, SelectCurrencyRatioSellAmount, SelectCurrencyRatioReceiveCurrency, SelectCurrencyRatioReceiveAmount, SelectCurrencyRatioReceiveRatio, true)
+Return
+
+SelectCurrencyRatioSubmit:
+	Gui, CurrencyRatio:Submit
+	TradeFunc_SelectCurrencyRatio(SelectCurrencyRatioSellCurrency, SelectCurrencyRatioSellAmount, SelectCurrencyRatioReceiveCurrency, SelectCurrencyRatioReceiveAmount, SelectCurrencyRatioReceiveRatio)
+Return
+
+TradeFunc_SelectCurrencyRatio(typeSell, amountSell, typeReceive, amountReceive, ratioReceive, isPreview = false) {
+	tags := TradeGlobals.Get("CurrencyTags")
+	
+	id := ""
+	For key, category in tags {
+		For k, type in category {
+			If (type.text = typeReceive or type.short = typeReceive) {
+				id := type.id
+			}
+		}
+	}
+	
+	note := "~price "
+	If (not ratioReceive) {
+		ratio1 := TradeUtils.ZeroTrim(Round(amountReceive / amountSell, 4))
+		ratio2 := TradeUtils.ZeroTrim(Round(amountSell / amountReceive, 4))
+		note .= amountReceive "/" amountSell " " id
+	} Else {
+		ratioReceive := RegExReplace(ratioReceive, ",", ".")
+		ratio1 := ratioReceive
+		ratio2 := TradeUtils.ZeroTrim(Round(1 / ratioReceive, 4))
+
+		; loop over the sell amount, increasing and decreasing it until we get an integer receive amount (rounded 3 decimals).
+		sVHi := amountSell
+		sVLow := amountSell
+		loops := 0
+		Loop {
+			rVHi := TradeUtils.ZeroTrim(Round(sVHi / ratio2, 3))
+			rVLow := TradeUtils.ZeroTrim(Round(sVLow / ratio2, 3))
+			
+			If (RegExMatch(rVHi, "^\d+$")) {
+				receiveValue := rVHi
+				sellValue := sVHi
+			} Else If (RegExMatch(rVLow, "^\d+$")) {
+				receiveValue := rVLow	
+				sellValue := sVLow
+			}	
+			
+			sVHi++			
+			If (A_Index & 0) {
+				; decrease the sell amount only on even loops
+				sVLow := sVLow > 1 ? sVLow - 1 : sVLow	
+			}			
+			loops := A_Index
+		} Until receiveValue
+		
+		note .= receiveValue "/" sellValue " " id
+	}
+	
+	If (not isPreview) {		
+		Clipboard := note
+		msg := "Copied note """ note """ to the clipboard"
+		msg := loops > 1 ? msg " after changing the sell amount to better fit the ratio." : msg "."		
+	}
+	Else {
+		msg := "Note preview """ note """ created"
+		msg := loops > 1 ? msg " after changing the sell amount to better fit the ratio." : msg "." 
+	}
+	
+	msg .= "`n`n" "This is equivalent to a ratio of:"
+	msg .= "`n"   "    [" typeSell "]  1 : " ratio1 "  [" typeReceive "]"
+	msg .= "`n"   "    [" typeSell "]  " ratio2 " : 1  [" typeReceive "]"
+	ShowTooltip(msg)
+	
+	Return
+}
 
 TradeFunc_PredictedPricingSendFeedback(selector, comment, encodedData, league, price) {
 	postData 	:= ""

@@ -10586,9 +10586,7 @@ OpenItemOnPoEAntiquary() {
 			name := Item.Name
 			
 			If (AntiquaryType) {
-				url := "http://poe-antiquary.xyz/api/id/" UriEncode(AntiquaryType) "/" UriEncode(Item.Name)
-				;http://poe-antiquary.xyz/api/id/Accessory/Impresence
-				;global AntiquaryItemChoice					
+				url := "http://poe-antiquary.xyz/api/macro/" UriEncode(AntiquaryType) "/" UriEncode(Item.Name)			
 				
 				postData 	:= ""					
 				options	:= "RequestType: GET"
@@ -10606,29 +10604,33 @@ OpenItemOnPoEAntiquary() {
 				} Catch error {
 					errorMsg := error.Message
 					Msgbox, %errorMsg%
-				}				
-				
-				length := AntiquaryData.Length()					
-				If (length == 1) {
-					data := AntiquaryData[1]
-					id := data["id"]
-					name := data["name"]
-					lastLeague := data["league"]
-					AntiquaryOpenInBrowser(AntiquaryType, name, id, lastLeague)
 				}
-				If (length > 1) {
-					;AntiquaryCreateGUI()
+				
+				name := AntiquaryData["name"]
+				lastLeague := AntiquaryData["league"]
+				itemType := AntiquaryData["itemType"]
+				items := AntiquaryData.items
+				length := items.Length()
+				
+				If (length == 0) {
+					ShowToolTip("Item not available on http://poe-antiquary.xyz.")
+				}
+				Else If (length == 1) {
+					AntiquaryOpenInBrowser(itemType, name, id, lastLeague)
+				}
+				Else If (length > 1) {
+					AntiquaryOpenInBrowser(itemType, name, id, lastLeague, length)
 				}
 			}
 		}
 		Else {			
-			ShowToolTip("Item not available on http://poe-antiquary.xyz.")
+			ShowToolTip("Item parsing failed, no name recognized.")
 		}
 		SuspendPOEItemScript = 0
 	}
 }
 
-AntiquaryOpenInBrowser(type, name, id, lastLeague) {
+AntiquaryOpenInBrowser(type, name, id, lastLeague, multiItems) {
 	league := TradeGlobals.Get("LeagueName")
 	If (RegExMatch(league, "Hardcore.*")) {
 		league := lastLeague "HC"
@@ -10642,7 +10644,12 @@ AntiquaryOpenInBrowser(type, name, id, lastLeague) {
 	id		:= UriEncode(id)
 	utm		:= UriEncode("trade macro")
 	
-	url := "http://poe-antiquary.xyz/" league "/" type "/" name "/" id "?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm
+	If (multiItems) {
+		url := "http://poe-antiquary.xyz/" league "/" type "?name=" name "?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm		
+	}
+	Else {
+		url := "http://poe-antiquary.xyz/" league "/" type "/" name "/" id "?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm	
+	}
 	openWith := AssociatedProgram("html")
 	OpenWebPageWith(openWith, url)
 }
