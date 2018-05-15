@@ -10583,9 +10583,14 @@ OpenItemOnPoEAntiquary() {
 		If (Item.Name) {			
 			global AntiquaryData := []
 			global AntiquaryType := AntiquaryGetType(Item)
-			name := Item.Name
 			
 			If (AntiquaryType) {
+				If (AntiquaryType = "Map") {
+					name := Item.BaseName
+				} Else {
+					name := Item.Name
+				}
+
 				url := "http://poe-antiquary.xyz/api/macro/" UriEncode(AntiquaryType) "/" UriEncode(Item.Name)			
 				
 				postData 	:= ""					
@@ -10687,7 +10692,11 @@ AntiquaryGetType(Item) {
 		return "Fragment"
 	}
 	If (Item.IsMap) {
-		return "Map"
+		If (Item.IsUnique) {
+			return "Unique Map"
+		} Else {
+			return "Map"	
+		}		
 	}
 	If (RegExMatch(Item.Name, "(Sacrifice|Mortal|Fragment).*|Offering to the Goddess|Divine Vesse|.*(Breachstone|s Key)")) {
 		return "Fragment"
