@@ -694,6 +694,12 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 				RequestParams.Elder := 1
 			}
 		}		
+		
+		; abyssal sockets 
+		If (s.useAbyssalSockets) {
+			RequestParams.sockets_a_min := s.useAbyssalSockets
+			RequestParams.sockets_a_max := s.useAbyssalSockets
+		}
 	}
 
 	; prepend the item.subtype to match the options used on poe.trade
@@ -2882,10 +2888,11 @@ TradeFunc_RemoveAlternativeVersionsMods(Item, Affixes) {
 		For key, val in Affixes {
 			; remove negative sign also
 			t := TradeUtils.CleanUp(RegExReplace(val, "i)-?[\d\.]+", "#"))
-			n := TradeUtils.CleanUp(RegExReplace(v.param, "i)-?[\d\.]+", "#"))
+			n := TradeUtils.CleanUp(RegExReplace(v.name_orig, "i)-?[\d\.]+|-?\(.+?\)", "#"))
 			n := TradeUtils.CleanUp(n)
 			; match with optional positive sign to match for example "-7% to cold resist" with "+#% to cold resist"
-			RegExMatch(n, "i)(\+?" . t . ")", match)
+			RegExMatch(n, "i)^(\+?" . t . ")$", match)
+
 			If (match) {
 				modFound := true
 			}
@@ -3085,6 +3092,12 @@ TradeFunc_GetItemsPoeTradeUniqueMods(_item) {
 		}
 		If (StrLen(_item.mods[k]["param"]) < 1) {
 			_item.mods[k]["param"] := TradeFunc_FindInModGroup(mods["leaguestone"], _item.mods[k])
+		}
+		
+		; Handle special mods like "Has # Abyssal Sockets" which technically has no rolls but different mod variants.
+		; It's also not available on poe.trade as a mod but as a seperate form option.		
+		If (RegExMatch(_item.mods[k].name, "i)Has # Abyssal (Socket|Sockets)")) {
+			_item.mods[k].showModAsSeperateOption := true		
 		}
 	}
 
@@ -3600,7 +3613,10 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		line := line . "-"
 	}
 
-	; Item "nameplate" including sockets and links
+	/*
+		Add item "nameplate" including sockets and links
+		*/
+		
 	If (true) {
 		itemName := advItem.name
 		itemType := advItem.BaseName
@@ -3642,7 +3658,9 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 	ValueRangeMin	:= ValueRangeMin / 100
 	ValueRangeMax	:= ValueRangeMax / 100
 
-	; calculate length of first column
+	/*
+		calculate length of first column
+		*/
 	modLengthMax	:= 0
 	modGroupBox	:= 0
 	Loop % advItem.mods.Length() {
@@ -3662,7 +3680,10 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 	modGroupBox := modGroupBox + 10
 	modCount := advItem.mods.Length()
 
-	; calculate row count and mod box height
+	/*
+		calculate row count and mod box heights
+		*/
+		
 	statCount := 0
 	For i, stat in Stats.Defense {
 		statCount := (stat.value) ? statCount + 1 : statCount
@@ -3687,9 +3708,11 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 	}
 	Gui, SelectModsGui:Add, Text, x0 w700 yp+13, %line%
 
-	;add defense stats
+	/*
+		add defense stats
+		*/
+		
 	j := 1
-
 	For i, stat in Stats.Defense {
 		If (stat.value) {
 			xPosMin := modGroupBox + 25
@@ -3751,8 +3774,11 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		Gui, SelectModsGui:Add, Text, x0 w700 yp+18 cc9cacd, %line%
 	}
 
-	k := 1
-	;add dmg stats
+	/*
+		add dmg stats
+		*/
+		
+	k := 1	
 	For i, stat in Stats.Offense {
 		If (stat.value) {
 			xPosMin := modGroupBox + 25
@@ -3811,8 +3837,11 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		Gui, SelectModsGui:Add, Text, x0 w700 yp+18 cc9cacd, %line%
 	}
 
+	/*
+		Enchantment or Corrupted Implicit
+		*/
+		
 	e := 0
-	; Enchantment or Corrupted Implicit
 	If (ChangedImplicit) {
 		e := 1
 		xPosMin := modGroupBox + 25
@@ -3837,14 +3866,17 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		Gui, SelectModsGui:Add, Text, x0 w700 yp+18 cc9cacd, %line%
 	}
 
-	; add mods
+	/*
+		add mods
+		*/
+		
 	l := 1
 	p := 1
 	TradeAdvancedNormalModCount := 0
 	ModNotFound := false
 	PreCheckNormalMods := TradeOpts.AdvancedSearchCheckMods ? "Checked" : ""
-	
-	Loop % advItem.mods.Length() {
+
+	Loop % advItem.mods.Length() {		
 		hidePseudo := advItem.mods[A_Index].hideForTradeMacro ? true : false
 		; allow non-variable mods if the item has variants to better identify the specific version/variant
 		invalidUnique := (not advItem.mods[A_Index].isVariable and not advItem.hasVariant and advItem.IsUnique)
@@ -4011,7 +4043,7 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 			Gui, SelectModsGui:Add, CheckBox, x+10 yp+1 %checkedState% vTradeAdvancedSelected%index%
 		}
 		Else {
-			GUI, SelectModsGui:Add, Picture, x+10 yp+1 hwndErrorPic 0x0100, %A_ScriptDir%\resources\images\error.png
+			Gui, SelectModsGui:Add, Picture, x+10 yp+1 hwndErrorPic 0x0100, %A_ScriptDir%\resources\images\error.png
 		}
 
 		color := "cBlack"
@@ -4020,14 +4052,34 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		l++
 		TradeAdvancedModsCount := l
 	}
-
-	m := 1
-
-	; Links and Sockets
-	If (advItem.mods.Length()) {
-		Gui, SelectModsGui:Add, Text, x0 w700 y+5 cc9cacd, %line%
+	
+	/*
+		Prepare some special options
+		*/
+		
+	abyssalSockets := 0	
+	Loop % advItem.mods.Length() {
+		If (advItem.mods[A_Index].showModAsSeperateOption) {			
+			If (RegExMatch(advItem.mods[A_Index].name, "i)^Has # Abyssal (Socket|Sockets)$")) {
+				abyssalSockets := advItem.mods[A_Index].values[1]
+			}
+		}
 	}
 
+	/*
+		Links and Sockets
+		*/
+	
+	m := 1
+	If (advItem.mods.Length()) {
+		Gui, SelectModsGui:Add, Text, x0 w700 y+5 cc9cacd, %line%
+	}	
+	
+	If (abyssalSockets) {
+		Gui, SelectModsGui:Add, CheckBox, x15 y+10 vTradeAdvancedUseAbyssalSockets Checked, % "Abyssal Sockets: " abyssalSockets
+		Gui, SelectModsGui:Add, Edit, x+0 yp+0 w0 vTradeAdvancedAbyssalSockets, % abyssalSockets
+	}	
+	
 	If (Sockets >= 5) {
 		m++
 		text := "Sockets: " . Trim(Sockets)
@@ -4067,7 +4119,10 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		Gui, SelectModsGui:Add, CheckBox, x%offset% yp+0 vTradeAdvancedUseLinksMaxThree, % text
 	}
 
-	; ilvl
+	/*
+		ilvl
+		*/
+
 	offsetX := (m = 1) ? "15" : "+10"
 	offsetY := (m = 1) ? "20" : "+0"
 	iLvlCheckState := ""
@@ -4100,7 +4155,10 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 	Gui, SelectModsGui:Add, CheckBox, x%offsetX% yp%offsetY% vTradeAdvancedSelectedILvl %iLvlCheckState%, % "iLvl (min)"
 	Gui, SelectModsGui:Add, Edit    , x+1 yp-3 w30 vTradeAdvancedMinILvl , % iLvlValue
 
-	; item base
+	/*
+		item base
+		*/
+		
 	If (advItem.IsBeast) {
 		baseCheckState := "Checked"
 		Gui, SelectModsGui:Add, CheckBox, x+15 yp+3 vTradeAdvancedSelectedItemBase %baseCheckState%, % "Use Genus (" advItem.BeastData.Genus ")"
@@ -4277,6 +4335,8 @@ TradeFunc_ResetGUI() {
 	TradeAdvancedImplicitCount		:=
 	TradeAdvancedNormalModCount		:=
 	TradeAdvancedOverrideOnlineState	:=
+	TradeAdvancedUseAbyssalSockets	:=
+	TradeAdvancedAbyssalSockets		:=
 
 	TradeGlobals.Set("AdvancedPriceCheckItem", {})
 }
@@ -4340,6 +4400,8 @@ TradeFunc_HandleGuiSubmit() {
 	newItem.useBase			:= TradeAdvancedSelectedItemBase
 	newItem.useSpecialBase		:= TradeAdvancedSelectedSpecialBase
 	newItem.onlineOverride		:= TradeAdvancedOverrideOnlineState
+	newItem.useAbyssalSockets 	:= TradeAdvancedUseAbyssalSockets
+	newItem.abyssalSockets		:= TradeAdvancedAbyssalSockets
 
 	TradeGlobals.Set("AdvancedPriceCheckItem", newItem)
 	Gui, SelectModsGui:Destroy
