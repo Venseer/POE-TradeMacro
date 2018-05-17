@@ -10579,13 +10579,18 @@ OpenItemOnPoEAntiquary() {
 		CBContents := PreProcessContents(CBContents)
 		Globals.Set("ItemText", CBContents)
 		ParsedData := ParseItemData(CBContents)
-
+		
 		If (Item.Name) {			
 			global AntiquaryData := []
 			global AntiquaryType := AntiquaryGetType(Item)
-			name := Item.Name
 			
 			If (AntiquaryType) {
+				If (AntiquaryType = "Map") {
+					name := Item.BaseName
+				} Else {
+					name := Item.Name
+				}
+
 				url := "http://poe-antiquary.xyz/api/macro/" UriEncode(AntiquaryType) "/" UriEncode(Item.Name)			
 				
 				postData 	:= ""					
@@ -10598,14 +10603,15 @@ OpenItemOnPoEAntiquary() {
 				reqHeaders.push("Upgrade-Insecure-Requests: 1")
 				reqHeaders.push("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
 				
-				data := PoEScripts_Download(url, postData, reqHeaders, "", true)				
+				data := PoEScripts_Download(url, postData, reqHeaders, "", true)
+
 				Try {
 					AntiquaryData := JSON.Load(data)
 				} Catch error {
 					errorMsg := error.Message
 					Msgbox, %errorMsg%
 				}
-				
+
 				name := AntiquaryData["name"]
 				lastLeague := AntiquaryData["league"]
 				itemType := AntiquaryData["itemType"]
@@ -10616,6 +10622,7 @@ OpenItemOnPoEAntiquary() {
 					ShowToolTip("Item not available on http://poe-antiquary.xyz.")
 				}
 				Else If (length == 1) {
+					id := items[1].id
 					AntiquaryOpenInBrowser(itemType, name, id, lastLeague)
 				}
 				Else If (length > 1) {
@@ -10630,7 +10637,7 @@ OpenItemOnPoEAntiquary() {
 	}
 }
 
-AntiquaryOpenInBrowser(type, name, id, lastLeague, multiItems) {
+AntiquaryOpenInBrowser(type, name, id, lastLeague, multiItems = false) {
 	league := TradeGlobals.Get("LeagueName")
 	If (RegExMatch(league, "Hardcore.*")) {
 		league := lastLeague "HC"
@@ -10645,10 +10652,10 @@ AntiquaryOpenInBrowser(type, name, id, lastLeague, multiItems) {
 	utm		:= UriEncode("trade macro")
 	
 	If (multiItems) {
-		url := "http://poe-antiquary.xyz/" league "/" type "?name=" name "?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm		
+		url := "http://poe-antiquary.xyz/" league "/" type "?name=" name ;"?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm		
 	}
 	Else {
-		url := "http://poe-antiquary.xyz/" league "/" type "/" name "/" id "?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm	
+		url := "http://poe-antiquary.xyz/" league "/" type "/" name "/" id ;"?utm_source=" utm "&utm_medium=" utm "&utm_campaign=" utm	
 	}
 	openWith := AssociatedProgram("html")
 	OpenWebPageWith(openWith, url)
@@ -10662,13 +10669,13 @@ AntiquaryGetType(Item) {
 		If (Item.IsArmour) {
 			return "Armour"
 		}
-		If (Item.isFlask) {
+		If (Item.IsFlask) {
 			return "Flask"
 		}
-		If (Item.isJewel) {
+		If (Item.IsJewel) {
 			return "Jewel"
 		}
-		If (Item.isBelt or Item.isRing or Item.isAmulet) {
+		If (Item.IsBelt or Item.IsRing or Item.IsAmulet) {
 			return "Accessory"
 		}
 	}
@@ -10683,6 +10690,13 @@ AntiquaryGetType(Item) {
 	}
 	If (Item.IsMapFragment) {
 		return "Fragment"
+	}
+	If (Item.IsMap) {
+		If (Item.IsUnique) {
+			return "Unique Map"
+		} Else {
+			return "Map"	
+		}		
 	}
 	If (RegExMatch(Item.Name, "(Sacrifice|Mortal|Fragment).*|Offering to the Goddess|Divine Vesse|.*(Breachstone|s Key)")) {
 		return "Fragment"
