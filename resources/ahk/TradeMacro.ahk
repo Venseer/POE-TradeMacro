@@ -5086,6 +5086,8 @@ TradeFunc_SelectCurrencyRatio(typeSell, amountSell, typeReceive, amountReceive, 
 	
 	note := "~price "
 	If (not ratioReceive) {
+		amountReceive := Round(amountReceive)
+		amountSell := Round(amountSell)
 		ratio1 := TradeUtils.ZeroTrim(Round(amountReceive / amountSell, 4))
 		ratio2 := TradeUtils.ZeroTrim(Round(amountSell / amountReceive, 4))
 		note .= amountReceive "/" amountSell " " id
