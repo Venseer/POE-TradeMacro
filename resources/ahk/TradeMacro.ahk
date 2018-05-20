@@ -697,8 +697,8 @@ TradeFunc_Main(openSearchInBrowser = false, isAdvancedPriceCheck = false, isAdva
 		
 		; abyssal sockets 
 		If (s.useAbyssalSockets) {
-			RequestParams.sockets_a_min := s.useAbyssalSockets
-			RequestParams.sockets_a_max := s.useAbyssalSockets
+			RequestParams.sockets_a_min := s.abyssalSockets
+			RequestParams.sockets_a_max := s.abyssalSockets
 		}
 	}
 
@@ -3097,7 +3097,7 @@ TradeFunc_GetItemsPoeTradeUniqueMods(_item) {
 		; Handle special mods like "Has # Abyssal Sockets" which technically has no rolls but different mod variants.
 		; It's also not available on poe.trade as a mod but as a seperate form option.		
 		If (RegExMatch(_item.mods[k].name, "i)Has # Abyssal (Socket|Sockets)")) {
-			_item.mods[k].showModAsSeperateOption := true		
+			_item.mods[k].showModAsSeperateOption := true
 		}
 	}
 
@@ -4059,7 +4059,7 @@ TradeFunc_AdvancedPriceCheckGui(advItem, Stats, Sockets, Links, UniqueStats = ""
 		
 	abyssalSockets := 0	
 	Loop % advItem.mods.Length() {
-		If (advItem.mods[A_Index].showModAsSeperateOption) {			
+		If (advItem.mods[A_Index].showModAsSeperateOption) {
 			If (RegExMatch(advItem.mods[A_Index].name, "i)^Has # Abyssal (Socket|Sockets)$")) {
 				abyssalSockets := advItem.mods[A_Index].values[1]
 			}
