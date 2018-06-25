@@ -8482,6 +8482,10 @@ GetNegativeAffixOffset(Item)
 	{
 		NegativeAffixOffset += 1
 	}
+	If (RegExMatch(Item.Name, "i)Tabula Rasa")) ; no mods, no flavour text
+	{
+		NegativeAffixOffset -= 2
+	}
 	return NegativeAffixOffset
 }
 
@@ -10521,7 +10525,11 @@ HighlightItems(broadTerms = false, leaveSearchField = true) {
 				If (broadTerms) {
 					terms.push(Item.BaseType)
 				} Else {
-					terms.push(Item.BaseName)
+					If (Item.BaseName) {
+						terms.push(Item.BaseName)	
+					} Else {
+						terms.push("Jewel")
+					}					
 					terms.push(rarity)
 				}
 			}
@@ -10574,8 +10582,12 @@ HighlightItems(broadTerms = false, leaveSearchField = true) {
 							}
 						}
 					}
-				} Else {
-					terms.push(Item.BaseName)
+				} Else {			
+					If (Item.BaseName) {
+						terms.push(Item.BaseName)	
+					} Else {
+						terms.push(Trim(RegExReplace(Item.Name, "Superior")))
+					}
 				}
 			}
 		}
@@ -11460,7 +11472,7 @@ CheckForUpdates:
 	return
 
 ; TODO: use this for trademacro also
-CurrencyDataDowloadURLtoJSON(url, sampleValue, critical = false, league = "", project ="", tmpFileName = "", fallbackDir = "", ByRef usedFallback = false) {
+CurrencyDataDowloadURLtoJSON(url, sampleValue, critical = false, league = "", project ="", tmpFileName = "", fallbackDir = "", ByRef usedFallback = false, ByRef loggedCurrencyRequestAtStartup = false) {	
 	errorMsg := "Parsing the currency data (json) from poe.ninja failed.`n"
 	errorMsg .= "This should only happen when the servers are down / unavailable."
 	errorMsg .= "`n`n"
@@ -11468,7 +11480,6 @@ CurrencyDataDowloadURLtoJSON(url, sampleValue, critical = false, league = "", pr
 
 	errors := 0
 	Try {
-		reqHeaders.push("Host: poe.ninja")
 		reqHeaders.push("Connection: keep-alive")
 		reqHeaders.push("Cache-Control: max-age=0")
 		;reqHeaders.push("Content-type: application/x-www-form-urlencoded; charset=UTF-8")
@@ -11476,6 +11487,10 @@ CurrencyDataDowloadURLtoJSON(url, sampleValue, critical = false, league = "", pr
 		reqHeaders.push("User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36")
 		parsedJSON := PoEScripts_Download(url, postData, reqHeaders, options, true, true, false, "", reqHeadersCurl)
 		
+		If (not loggedCurrencyRequestAtStartup) {
+			TradeFunc_WriteToLogFile("Requesting currency data from poe.ninja...`n`n" "cURL command:`n" reqHeadersCurl "`n`nAnswer: " reqHeaders)
+			loggedCurrencyRequestAtStartup := true
+		}
 		; first currency data parsing (script start)
 		If (critical and not sampleValue or not parsedJSON.lines.length()) {
 			errors++
@@ -11514,6 +11529,7 @@ FetchCurrencyData:
 	_CurrencyDataJSON	:= {}
 	currencyLeagues	:= ["Standard", "Hardcore", "tmpstandard", "tmphardcore", "eventstandard", "eventhardcore"]
 	sampleValue		:= "ff"
+	loggedCurrencyRequestAtStartup := loggedCurrencyRequestAtStartup ? loggedCurrencyRequestAtStartup : false 
 	
 	Loop, % currencyLeagues.Length() {
 		currencyLeague := currencyLeagues[A_Index]
@@ -11522,7 +11538,7 @@ FetchCurrencyData:
 
 		url		:= "http://poe.ninja/api/Data/GetCurrencyOverview?league=" . currencyLeague
 		critical	:= StrLen(Globals.Get("LastCurrencyUpdate")) ? false : true
-		parsedJSON := CurrencyDataDowloadURLtoJSON(url, sampleValue, critical, currencyLeague, "PoE-ItemInfo", file, A_ScriptDir "\data", usedFallback)		
+		parsedJSON := CurrencyDataDowloadURLtoJSON(url, sampleValue, critical, currencyLeague, "PoE-ItemInfo", file, A_ScriptDir "\data", usedFallback, loggedCurrencyRequestAtStartup)		
 
 		Try {
 			If (parsedJSON) {		

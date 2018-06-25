@@ -1,5 +1,23 @@
 The following is a list of what has been updated, starting with 1.1.0
 
+2.10.6
+================================================================================================
+* Hotfixed an issue introduced in 2.10.5 where some searches could be missing any type and base parameters, making the search broader than intended.
+* Fixed an issue with using the predicted pricing on items directly from chat. The item data contains some extra characters related to localisations, which are currently not handled by poeprices. 
+
+2.10.5
+================================================================================================
+* Fixed an issue where searches using the item base of a few sceptres (at least Tyrant's Sekhem) didn't work because their item type was still classified as "Mace" instead of "Sceptre".
+* Reduced the request timeout for searches using poeprices.info.
+* Improved the poeprices error tooltip in the hope that issue reports go to them more often. I can't do anything about most issues except forwarding them since they are related to their servers/API.
+* Updated all data files (uniques, supported mods on poe.trade etc). 
+
+2.10.4
+================================================================================================
+* Fixed an issue where multiple corrupted implicits on items were not supported by the advanced search.
+* Fixed an issue where a Tabula Rasa with a corrupted implicit was not supported by the advanced search.
+* Fixed an issue where requests to poe.trade timed out for some people. A fallback request could still be made but the entire process took up to a minute. Please report if this change causes your searches to fail completely (should not happen).
+
 2.10.3
 ================================================================================================
 * Fixed some issues with gem searches. Some Vaal Gem names weren't parsed correctly and some new Gems are not available as a "base" option on poe.trade, causing searches in these cases to fail.

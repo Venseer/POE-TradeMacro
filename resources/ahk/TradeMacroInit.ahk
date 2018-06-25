@@ -1416,7 +1416,6 @@ TradeFunc_TestCloudflareBypass(Url, UserAgent="", cfduid="", cfClearance="", use
 	reqHeaders.push("Accept-Encoding:gzip, deflate")
 	reqHeaders.push("Accept-Language:de-DE,de;q=0.8,en-US;q=0.6,en;q=0.4")
 	reqHeaders.push("Connection:keep-alive")
-	reqHeaders.push("Host:poe.trade")
 	reqHeaders.push("Upgrade-Insecure-Requests:1")
 
 	html := ""
@@ -1537,10 +1536,8 @@ TradeFunc_GetOSInfo() {
 
 ;----------------------- SplashScreens ---------------------------------------
 TradeFunc_StartSplashScreen() {
-	;SplashTextOn, , 20, PoE-TradeMacro, Initializing script...
-	welcome := chr(27426)chr(36814)	; 欢迎
-	;SplashTextOn, 300, 20, PoE-TradeMacro, % "Welcoming the new overlords (" welcome ")..."
-	SplashTextOn, 300, 20, PoE-TradeMacro, % "Paying respects to the Cynical Brit..."
+	;SplashTextOn, , 20, PoE-TradeMacro, Initializing script...	
+	SplashTextOn, 300, 20, PoE-TradeMacro, % "Searching the Temple of Atzoatl..."
 }
 
 TradeFunc_StopSplashScreen() {
